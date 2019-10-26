@@ -1,0 +1,22 @@
+{
+  "name": "cielab-theme-ui-generator",
+  "version": "1.0.0",
+  "main": "index.js",
+  "author": "christopherbiscardi <chris@christopherbiscardi.com> (@chrisbiscardi)",
+  "license": "MIT",
+  "dependencies": {
+    "@emotion/core": "^10.0.22",
+    "@mdx-js/react": "^1.5.1",
+    "d3-array": "^2.3.3",
+    "d3-axis": "^1.0.12",
+    "d3-color": "^1.4.0",
+    "d3-random": "^2.0.0",
+    "d3-scale": "^3.2.0",
+    "d3-selection": "^1.4.0",
+    "d3-shape": "^1.3.5",
+    "gatsby": "^2.17.4",
+    "react": "^16.11.0",
+    "react-dom": "^16.11.0",
+    "theme-ui": "^0.2.44"
+  }
+}
