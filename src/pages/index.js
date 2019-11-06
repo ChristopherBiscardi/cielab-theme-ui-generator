@@ -1,12 +1,12 @@
 /** @jsx jsx */
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { jsx } from "theme-ui";
 import { lch } from "d3-color";
 import LineGraph from "../components/line-chart";
 import { randomUniform } from "d3-random";
 import bestContrast from "get-best-contrast-color";
 import getContrastRatio from "get-contrast-ratio";
-import { HotKeys } from "react-hotkeys";
+import { useHotkeys } from "react-hotkeys-hook";
 
 import { range } from "d3-array";
 
@@ -37,57 +37,109 @@ const state = {
 };
 
 export default props => {
-  const keyMap = {
-    GRID_UP: "w",
-    GRID_DOWN: "s",
-    GRID_LEFT: "a",
-    GRID_RIGHT: "d"
-  };
-
   const [currentColor, setCurrentColor] = useState({ name: "Gray", index: 4 });
-  const handlers = {
-    GRID_UP: e => {
-      console.log("GRID_UP");
+
+  useHotkeys(
+    "w",
+    () => {
       const listOfColors = Object.keys(state.grid);
       const currentColorRowIndex = listOfColors.findIndex(
         colorKey => colorKey === currentColor.name
       );
       if (listOfColors[currentColorRowIndex - 1]) {
-        console.log("setting one up");
-        setCurrentColor({
+        return setCurrentColor({
           ...currentColor,
-          name: listOfColors[currentColorRowIndex]
+          name: listOfColors[currentColorRowIndex - 1]
         });
       } else {
-        console.log("setting last");
-        setCurrentColor({
+        return setCurrentColor({
           ...currentColor,
           name: listOfColors[listOfColors.length - 1]
         });
       }
-    }
-  };
+    },
+    [currentColor]
+  );
+  useHotkeys(
+    "s",
+    () => {
+      const listOfColors = Object.keys(state.grid);
+      const currentColorRowIndex = listOfColors.findIndex(
+        colorKey => colorKey === currentColor.name
+      );
+      if (listOfColors[currentColorRowIndex + 1]) {
+        return setCurrentColor({
+          ...currentColor,
+          name: listOfColors[currentColorRowIndex + 1]
+        });
+      } else {
+        return setCurrentColor({
+          ...currentColor,
+          name: listOfColors[0]
+        });
+      }
+    },
+    [currentColor]
+  );
+
+  useHotkeys(
+    "d",
+    () => {
+      const listOfColors = state.grid[currentColor.name];
+      if (listOfColors[currentColor.index + 1]) {
+        return setCurrentColor({
+          ...currentColor,
+          index: currentColor.index + 1
+        });
+      } else {
+        return setCurrentColor({
+          ...currentColor,
+          index: 0
+        });
+      }
+    },
+    [currentColor]
+  );
+  useHotkeys(
+    "a",
+    () => {
+      const listOfColors = state.grid[currentColor.name];
+      if (listOfColors[currentColor.index - 1]) {
+        return setCurrentColor({
+          ...currentColor,
+          index: currentColor.index - 1
+        });
+      } else {
+        return setCurrentColor({
+          ...currentColor,
+          index: listOfColors.length - 1
+        });
+      }
+    },
+    [currentColor]
+  );
   return (
-    <HotKeys keyMap={keyMap} handlers={handlers}>
-      <div sx={{ display: "flex", background: "#edf8fe" }}>
-        <ColorPicker />
-        <ColorGrid setCurrentColor={setCurrentColor} />
-        <ColorColumn
-          currentIndex={currentColor.index}
-          title={currentColor.name}
-          colors={state.grid[currentColor.name]}
-          axisLabels={colorLabels}
-        />
-        <ColorColumn
-          currentIndex={currentColor.index}
-          title={colorLabels[currentColor.index]}
-          colors={Object.entries(state.grid).map(
-            ([, values]) => values[currentColor.index]
-          )}
-          axisLabels={Object.keys(state.grid)}
-        />
-      </div>
-    </HotKeys>
+    <div sx={{ display: "flex", background: "#edf8fe" }}>
+      <ColorPicker />
+      <ColorGrid
+        setCurrentColor={setCurrentColor}
+        currentColor={currentColor}
+      />
+      <ColorColumn
+        currentIndex={currentColor.index}
+        title={currentColor.name}
+        colors={state.grid[currentColor.name]}
+        axisLabels={colorLabels}
+      />
+      <ColorColumn
+        currentIndex={currentColor.index}
+        title={colorLabels[currentColor.index]}
+        colors={Object.entries(state.grid).map(
+          ([, values]) => values[currentColor.index]
+        )}
+        axisLabels={Object.keys(state.grid)}
+      />
+    </div>
   );
 };
 const ColorPicker = () => <div></div>;
@@ -96,7 +148,7 @@ function getRandomInt(min, max) {
   return Math.floor(Math.random() * (max - min + 1) + min);
 }
 
-const ColorGrid = ({ setCurrentColor }) => {
+const ColorGrid = ({ setCurrentColor, currentColor }) => {
   return (
     <div>
       <table sx={{ borderSpacing: 0 }}>
@@ -155,7 +207,11 @@ const ColorGrid = ({ setCurrentColor }) => {
                     <button
                       sx={{
                         backgroundColor: labColor.formatRgb(),
-                        border: `2px solid ${labColor.formatRgb()}`,
+                        border: `2px solid ${
+                          name === currentColor.name && currentColor.index === i
+                            ? "white"
+                            : labColor.formatRgb()
+                        }`,
                         height: "100%",
                         width: "100%",
                         padding: ".25rem .75rem",
@@ -190,7 +246,7 @@ const ColorGrid = ({ setCurrentColor }) => {
 const ColorRow = ({ colors, labels, currentIndex }) => (
   <div sx={{ padding: "1rem", display: "flex" }}>
     {colors.map((labColor, i) => (
-      <div sx={{ display: "flex", flexDirection: "column" }}>
+      <div key={i} sx={{ display: "flex", flexDirection: "column" }}>
         <span sx={{ fontSize: "12px" }}>{labels[i]}</span>
         <button
           key={i}
