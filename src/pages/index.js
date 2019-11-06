@@ -1,39 +1,35 @@
 /** @jsx jsx */
 import { useState } from "react";
 import { jsx } from "theme-ui";
-import { lab } from "d3-color";
+import { lch } from "d3-color";
 import LineGraph from "../components/line-chart";
+import { randomUniform } from "d3-random";
+import bestContrast from "get-best-contrast-color";
+import getContrastRatio from "get-contrast-ratio";
+import { HotKeys } from "react-hotkeys";
 
-const lightnessScale = [
-  98.2,
-  92.2,
-  80.8,
-  69.1,
-  59.9,
-  47.1,
-  36.0,
-  28.1,
-  19.9,
-  12.3
-];
-const colorLabels = [50, 100, 200, 300, 400, 500, 600, 700, 800, 900];
+import { range } from "d3-array";
+
+const lightnessScale = range(5, 145, 14);
+const colorLabels = [50, 100, 200, 300, 400, 500, 600, 700, 800, 900].reverse();
+// const colorHues = range(0, 340, 38);
 const colors = {
-  Gray: [0, 0],
-  Blue: [0, -160],
-  Cyan: [-80, -80],
-  Green: [-160, 0],
-  Yellow: [0, 160],
-  Orange: [0, 80],
-  Red: [160, 0],
-  Purple: [0, 0],
-  Violet: [0, 0]
+  Gray: [267.2, 0],
+  Blue: [286.9, 70],
+  Cyan: [255.1, 70],
+  Green: [163.7, 70],
+  Yellow: [55.5, 70],
+  Orange: [39.7, 70],
+  Red: [11.5, 70],
+  Purple: [320.2, 70],
+  Violet: [302.7, 70]
 };
 const state = {
   grid: Object.entries(colors).reduce(
-    (acc, [colorName, ab]) => ({
+    (acc, [colorName, hc]) => ({
       ...acc,
       [colorName]: Array.from({ length: 10 }).map((v, i) =>
-        lab(lightnessScale[i], ab[0], ab[1])
+        lch(colorLabels[i] / 10, hc[1], hc[0])
       )
     }),
     {}
@@ -41,26 +37,57 @@ const state = {
 };
 
 export default props => {
+  const keyMap = {
+    GRID_UP: "w",
+    GRID_DOWN: "s",
+    GRID_LEFT: "a",
+    GRID_RIGHT: "d"
+  };
+
   const [currentColor, setCurrentColor] = useState({ name: "Gray", index: 4 });
+  const handlers = {
+    GRID_UP: e => {
+      console.log("GRID_UP");
+      const listOfColors = Object.keys(state.grid);
+      const currentColorRowIndex = listOfColors.findIndex(
+        colorKey => colorKey === currentColor.name
+      );
+      if (listOfColors[currentColorRowIndex - 1]) {
+        console.log("setting one up");
+        setCurrentColor({
+          ...currentColor,
+          name: listOfColors[currentColorRowIndex]
+        });
+      } else {
+        console.log("setting last");
+        setCurrentColor({
+          ...currentColor,
+          name: listOfColors[listOfColors.length - 1]
+        });
+      }
+    }
+  };
   return (
-    <div sx={{ display: "flex" }}>
-      <ColorPicker />
-      <ColorGrid setCurrentColor={setCurrentColor} />
-      <ColorColumn
-        currentIndex={currentColor.index}
-        title={currentColor.name}
-        colors={state.grid[currentColor.name]}
-        axisLabels={colorLabels}
-      />
-      <ColorColumn
-        currentIndex={currentColor.index}
-        title={colorLabels[currentColor.index]}
-        colors={Object.entries(state.grid).map(
-          ([, values]) => values[currentColor.index]
-        )}
-        axisLabels={Object.keys(state.grid)}
-      />
-    </div>
+    <HotKeys keyMap={keyMap} handlers={handlers}>
+      <div sx={{ display: "flex", background: "#edf8fe" }}>
+        <ColorPicker />
+        <ColorGrid setCurrentColor={setCurrentColor} />
+        <ColorColumn
+          currentIndex={currentColor.index}
+          title={currentColor.name}
+          colors={state.grid[currentColor.name]}
+          axisLabels={colorLabels}
+        />
+        <ColorColumn
+          currentIndex={currentColor.index}
+          title={colorLabels[currentColor.index]}
+          colors={Object.entries(state.grid).map(
+            ([, values]) => values[currentColor.index]
+          )}
+          axisLabels={Object.keys(state.grid)}
+        />
+      </div>
+    </HotKeys>
   );
 };
 const ColorPicker = () => <div></div>;
@@ -72,13 +99,22 @@ function getRandomInt(min, max) {
 const ColorGrid = ({ setCurrentColor }) => {
   return (
     <div>
-      <table>
+      <table sx={{ borderSpacing: 0 }}>
         <caption>ColorGrid</caption>
         <thead>
           <tr>
             <th scope="col"></th>
             {colorLabels.map(label => (
-              <th scope="col" key={label}>
+              <th
+                scope="col"
+                key={label}
+                sx={{
+                  fontFamily: "system-ui",
+                  color: "rgb(119,119,119)",
+                  fontSize: ".5rem",
+                  textAlign: "left"
+                }}
+              >
                 {label}
               </th>
             ))}
@@ -88,21 +124,62 @@ const ColorGrid = ({ setCurrentColor }) => {
         <tbody>
           {Object.keys(colors).map(name => (
             <tr key={name}>
-              <th scope="row" key={name}>
+              <th
+                scope="row"
+                key={name}
+                sx={{
+                  margin: 0,
+                  padding: "0 .5rem",
+                  fontSize: ".5rem",
+                  fontFamily: "system-ui",
+                  color: "rgb(119,119,119)",
+                  textAlign: "right"
+                }}
+              >
                 {name}
               </th>
-              {state.grid[name].map((labColor, i) => (
-                <td key={name + "-" + labColor + "-" + i}>
-                  <button
-                    sx={{ backgroundColor: labColor.formatRgb() }}
-                    onClick={() => {
-                      setCurrentColor({ name, index: i });
-                    }}
+              {state.grid[name].map((labColor, i) => {
+                const bestColor = bestContrast(labColor.formatHex(), [
+                  state.grid.Gray[0].formatHex(),
+                  state.grid.Gray[state.grid.Gray.length - 1].formatHex()
+                ]);
+                const bestColorContrast = getContrastRatio(
+                  labColor.formatHex(),
+                  bestColor
+                );
+                return (
+                  <td
+                    key={name + "-" + labColor + "-" + i}
+                    sx={{ padding: 0, lineHeight: 0 }}
                   >
-                    {i}
-                  </button>
-                </td>
-              ))}
+                    <button
+                      sx={{
+                        backgroundColor: labColor.formatRgb(),
+                        border: `2px solid ${labColor.formatRgb()}`,
+                        height: "100%",
+                        width: "100%",
+                        padding: ".25rem .75rem",
+                        outline: "none",
+                        "&:focus": {
+                          borderColor: "#fff"
+                        }
+                      }}
+                      onClick={() => {
+                        setCurrentColor({ name, index: i });
+                      }}
+                    >
+                      <span
+                        sx={{
+                          color: bestColor,
+                          fontVariantNumeric: "tabular-nums"
+                        }}
+                      >
+                        {bestColorContrast}
+                      </span>
+                    </button>
+                  </td>
+                );
+              })}
             </tr>
           ))}
         </tbody>
@@ -120,9 +197,9 @@ const ColorRow = ({ colors, labels, currentIndex }) => (
           sx={{
             backgroundColor: labColor.formatRgb(),
             height: "20px",
-            width: "20px",
+            width: "40px",
             border: "1px solid transparent",
-            borderColor: i === currentIndex ? "red" : "transparent"
+            borderColor: i === currentIndex ? "white" : "transparent"
           }}
         >
           <span sx={{ display: "none" }}>{labColor.formatRgb()}</span>
@@ -132,10 +209,59 @@ const ColorRow = ({ colors, labels, currentIndex }) => (
   </div>
 );
 
-const ColorColumn = ({ title, colors, axisLabels, currentIndex }) => (
-  <div>
-    <h2>{title}</h2>
-    <ColorRow colors={colors} labels={axisLabels} currentIndex={currentIndex} />
-    <LineGraph />
-  </div>
-);
+// 8. An array of objects of length N. Each object has key -> value pair, the key being "y" and the value is a random number
+// var dataset = range(10).map(function(d) {
+//   return { y: randomUniform(1)() };
+// });
+
+const ColorColumn = ({ title, colors, axisLabels, currentIndex }) => {
+  // console.log("currentColor", colors[currentIndex], colors[currentIndex].h);
+  const linesData = colors.reduce(
+    (acc, lchColor, idx) => ({
+      l: acc.l.concat({ y: lchColor.l, color: colors[idx] }),
+      c: acc.c.concat({ y: lchColor.c, color: colors[idx] }),
+      h: acc.h.concat({ y: lchColor.h, color: colors[idx] })
+    }),
+    {
+      l: [],
+      c: [],
+      h: []
+    }
+  );
+  // console.log(linesData);
+  // console.log("hue", linesData.h);
+  return (
+    <div>
+      <h2>{title}</h2>
+      <ColorRow
+        colors={colors}
+        labels={axisLabels}
+        currentIndex={currentIndex}
+      />
+      <LineGraph
+        title="lightness"
+        width={400}
+        height={200}
+        dataset={linesData.l}
+        yDomainMax={150}
+        colorArray={colors}
+      />
+      <LineGraph
+        title="chroma"
+        width={400}
+        height={200}
+        dataset={linesData.c}
+        yDomainMax={100}
+        colorArray={colors}
+      />
+      <LineGraph
+        title="hue"
+        width={400}
+        height={200}
+        dataset={linesData.h}
+        yDomainMax={360}
+        colorArray={colors}
+      />
+    </div>
+  );
+};
