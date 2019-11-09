@@ -1,5 +1,5 @@
 /** @jsx jsx */
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { jsx } from "theme-ui";
 import { lch } from "d3-color";
 import LineGraph from "../components/line-chart";
@@ -149,6 +149,11 @@ function getRandomInt(min, max) {
 }
 
 const ColorGrid = ({ setCurrentColor, currentColor }) => {
+  const currentButton = useRef();
+  useEffect(() => {
+    console.log(currentButton);
+    currentButton && currentButton.current.focus();
+  });
   return (
     <div>
       <table sx={{ borderSpacing: 0 }}>
@@ -205,6 +210,11 @@ const ColorGrid = ({ setCurrentColor, currentColor }) => {
                     sx={{ padding: 0, lineHeight: 0 }}
                   >
                     <button
+                      ref={
+                        name === currentColor.name && currentColor.index === i
+                          ? currentButton
+                          : null
+                      }
                       sx={{
                         backgroundColor: labColor.formatRgb(),
                         border: `2px solid ${
