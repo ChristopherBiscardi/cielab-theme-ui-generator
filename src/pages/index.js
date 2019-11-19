@@ -8,40 +8,36 @@ import getContrastRatio from "get-contrast-ratio";
 import { useHotkeys } from "react-hotkeys-hook";
 
 import { range } from "d3-array";
-import { lchuvToRgbString } from "../colors";
 import { hsluvToHex, hpluvToHex, hexToHsluv, hexToHpluv } from "hsluv";
-// console.log(space.lchuv.rgb([80, 50, 60]));
 
-// lchuv is
-// 100,100,360
-const lightnessScale = range(5, 100, 14);
+// const lightnessScale = range(5, 100, 14);
 const colorLabels = [50, 100, 200, 300, 400, 500, 600, 700, 800, 900];
 // const colorHues = range(0, 340, 38);
 const colors = {
   Gray: [267.2, 0],
-  Blue: [286.9, 70],
-  Cyan: [255.1, 70],
-  Green: [163.7, 70],
-  Yellow: [55.5, 70],
-  Orange: [39.7, 70],
-  Red: [11.5, 70],
-  Purple: [320.2, 70],
-  Violet: [302.7, 70]
+  Blue: [286.9, 100],
+  Cyan: [255.1, 100],
+  Green: [163.7, 100],
+  Yellow: [55.5, 100],
+  Orange: [39.7, 100],
+  Red: [11.5, 100],
+  Purple: [320.2, 100],
+  Violet: [302.7, 100]
 };
 const state = {
   grid: Object.entries(colors).reduce(
-    (acc, [colorName, hc]) => ({
+    (acc, [colorName, hs]) => ({
       ...acc,
       [colorName]: Array.from({ length: 10 }).map((v, i) => [
+        hs[0],
+        hs[1],
         100 - colorLabels[i] / 10,
-        hc[1],
-        hc[0]
       ])
     }),
     {}
   )
 };
-console.log(state);
+// console.log(state);
 export default props => {
   const [currentColor, setCurrentColor] = useState({ name: "Gray", index: 4 });
 
@@ -201,20 +197,20 @@ const ColorGrid = ({ setCurrentColor, currentColor }) => {
               >
                 {name}
               </th>
-              {state.grid[name].map((lchuvColor, i) => {
-                const rgbString = lchuvToRgbString(lchuvColor);
+              {state.grid[name].map((colorAsTuple, i) => {
+                const color = hpluvToHex(colorAsTuple)
 
-                const bestColor = bestContrast(rgbString, [
-                  lchuvToRgbString(state.grid.Gray[0]),
-                  lchuvToRgbString(state.grid.Gray[state.grid.Gray.length - 1])
+                const bestColor = bestContrast(color, [
+                  hpluvToHex(state.grid.Gray[0]),
+                  hpluvToHex(state.grid.Gray[state.grid.Gray.length - 1])
                 ]);
                 const bestColorContrast = getContrastRatio(
-                  rgbString,
+                  color,
                   bestColor
                 );
                 return (
                   <td
-                    key={name + "-" + rgbString + "-" + i}
+                    key={name + "-" + color + "-" + i}
                     sx={{ padding: 0, lineHeight: 0 }}
                   >
                     <button
@@ -224,11 +220,11 @@ const ColorGrid = ({ setCurrentColor, currentColor }) => {
                           : null
                       }
                       sx={{
-                        backgroundColor: rgbString,
+                        backgroundColor: color,
                         border: `2px solid ${
                           name === currentColor.name && currentColor.index === i
                             ? "white"
-                            : rgbString
+                            : color
                         }`,
                         height: "100%",
                         width: "100%",
@@ -263,8 +259,8 @@ const ColorGrid = ({ setCurrentColor, currentColor }) => {
 };
 const ColorRow = ({ colors, labels, currentIndex }) => (
   <div sx={{ padding: "1rem", display: "flex" }}>
-    {colors.map((lchuvColor, i) => {
-      const rgbString = lchuvToRgbString(lchuvColor);
+    {colors.map((colorAsTuple, i) => {
+                const color = hpluvToHex(colorAsTuple)
 
       return (
         <div key={i} sx={{ display: "flex", flexDirection: "column" }}>
@@ -272,14 +268,14 @@ const ColorRow = ({ colors, labels, currentIndex }) => (
           <button
             key={i}
             sx={{
-              backgroundColor: rgbString,
+              backgroundColor: color,
               height: "20px",
               width: "40px",
               border: "1px solid transparent",
               borderColor: i === currentIndex ? "white" : "transparent"
             }}
           >
-            <span sx={{ display: "none" }}>{rgbString}</span>
+            <span sx={{ display: "none" }}>{color}</span>
           </button>
         </div>
       );
@@ -295,19 +291,18 @@ const ColorRow = ({ colors, labels, currentIndex }) => (
 const ColorColumn = ({ title, colors, axisLabels, currentIndex }) => {
   console.log("currentColor", colors[currentIndex]);
   const linesData = colors.reduce(
-    (acc, lchColor, idx) => ({
-      l: acc.l.concat({ y: lchColor[0], color: colors[idx] }),
-      c: acc.c.concat({ y: lchColor[1], color: colors[idx] }),
-      h: acc.h.concat({ y: lchColor[2], color: colors[idx] })
+    (acc, color, idx) => ({
+      h: acc.h.concat({ y: color[0], color: colors[idx] }),
+      s: acc.s.concat({ y: color[1], color: colors[idx] }),
+      l: acc.l.concat({ y: color[2], color: colors[idx] })
     }),
     {
-      l: [],
-      c: [],
-      h: []
+      h: [],
+      s: [],
+      l: []
     }
   );
-  // console.log(linesData);
-  // console.log("hue", linesData.h);
+
   return (
     <div>
       <h2>{title}</h2>
@@ -325,10 +320,10 @@ const ColorColumn = ({ title, colors, axisLabels, currentIndex }) => {
         colorArray={colors}
       />
       <LineGraph
-        title="chroma"
+        title="saturation"
         width={400}
         height={200}
-        dataset={linesData.c}
+        dataset={linesData.s}
         yDomainMax={100}
         colorArray={colors}
       />

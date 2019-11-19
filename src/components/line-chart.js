@@ -5,7 +5,8 @@ import { scaleLinear } from "d3-scale";
 import { line as d3line, curveMonotoneX } from "d3-shape";
 import { select, selectAll } from "d3-selection";
 import { axisLeft, axisBottom } from "d3-axis";
-import { lchuvToRgbString } from "../colors";
+import { hsluvToHex, hpluvToHex, hexToHsluv, hexToHpluv } from "hsluv";
+
 
 export default ({
   width: propsWidth,
@@ -106,7 +107,7 @@ export default ({
         sx={{
           "& .line": {
             fill: "none",
-            stroke: lchuvToRgbString(colorArray[0]),
+            stroke: hpluvToHex(colorArray[0]),
             strokeWidth: 3
           },
 
@@ -117,7 +118,7 @@ export default ({
           ...colorArray
             .map((color, i) => ({
               [`& circle:nth-of-type(${i + 1})`]: {
-                fill: lchuvToRgbString(color)
+                fill: hpluvToHex(color)
               }
             }))
             .reduce((acc, obj) => ({ ...acc, ...obj }), {}),
