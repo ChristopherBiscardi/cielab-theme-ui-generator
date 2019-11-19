@@ -15,8 +15,8 @@ const colorLabels = [50, 100, 200, 300, 400, 500, 600, 700, 800, 900];
 // const colorHues = range(0, 340, 38);
 const colors = {
   Gray: [267.2, 0],
-  Blue: [286.9, 100],
-  Cyan: [255.1, 100],
+  Blue: [260.9, 100],
+  Cyan: [245.1, 100],
   Green: [163.7, 100],
   Yellow: [55.5, 100],
   Orange: [39.7, 100],
@@ -120,6 +120,7 @@ export default props => {
     },
     [currentColor]
   );
+  // console.log('currentColor', currentColor, Object.keys(state.grid))
   return (
     <div sx={{ display: "flex", background: "#edf8fe" }}>
       <ColorPicker />
@@ -129,13 +130,13 @@ export default props => {
       />
       <ColorColumn
         currentIndex={currentColor.index}
-        title={currentColor.name}
+        title={colorLabels[currentColor.index]}
         colors={state.grid[currentColor.name]}
         axisLabels={colorLabels}
       />
       <ColorColumn
-        currentIndex={currentColor.index}
-        title={colorLabels[currentColor.index]}
+        currentIndex={Object.keys(state.grid).findIndex(name => name === currentColor.name)}
+        title={currentColor.name}
         colors={Object.entries(state.grid).map(
           ([, values]) => values[currentColor.index]
         )}
@@ -153,7 +154,7 @@ function getRandomInt(min, max) {
 const ColorGrid = ({ setCurrentColor, currentColor }) => {
   const currentButton = useRef();
   useEffect(() => {
-    console.log(currentButton);
+    // console.log(currentButton);
     currentButton && currentButton.current.focus();
   });
   return (
@@ -289,7 +290,6 @@ const ColorRow = ({ colors, labels, currentIndex }) => (
 // });
 
 const ColorColumn = ({ title, colors, axisLabels, currentIndex }) => {
-  console.log("currentColor", colors[currentIndex]);
   const linesData = colors.reduce(
     (acc, color, idx) => ({
       h: acc.h.concat({ y: color[0], color: colors[idx] }),
